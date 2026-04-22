@@ -1,3 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinity Tic-Tac-Toe P2P</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #121212; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .container { text-align: center; background: #1e1e1e; padding: 30px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.7); border: 1px solid #333; max-width: 400px; }
+        
+        h1 { margin-top: 0; color: #888; font-weight: 300; letter-spacing: 2px; font-size: 1.5rem; }
+        
+        #status { margin: 20px 0; font-size: 1.2rem; font-weight: bold; min-height: 3rem; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
+        .X-color { color: #00d4ff; text-shadow: 0 0 10px rgba(0,212,255,0.3); }
+        .O-color { color: #ff4757; text-shadow: 0 0 10px rgba(255,71,87,0.3); }
+        
+        .board { display: grid; grid-template-columns: repeat(3, 100px); gap: 12px; margin: 20px auto; }
+        .cell { width: 100px; height: 100px; background: #2a2a2a; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 3rem; cursor: pointer; transition: all 0.2s ease; border: 1px solid #444; box-sizing: border-box; }
+        .cell:hover { background: #333; border-color: #00d4ff; }
+        
+        .cell.X { color: #00d4ff; }
+        .cell.O { color: #ff4757; }
+        .cell.next-off { opacity: 0.2; filter: grayscale(1); }
+
+        #link-section { background: #111; padding: 15px; border-radius: 10px; font-size: 0.85rem; margin-bottom: 20px; border: 1px dashed #444; }
+        #share-url { color: #00d4ff; display: block; margin: 10px 0; word-break: break-all; font-family: monospace; padding: 5px; background: #000; border-radius: 4px; }
+        
+        .btn { background: #333; color: white; border: 1px solid #555; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; text-transform: uppercase; width: 100%; }
+        .btn:hover { background: #444; border-color: #00d4ff; color: #00d4ff; }
+        #rematch-btn { display: none; background: #00d4ff; color: black; margin-top: 10px; border: none; }
+        #rematch-btn:hover { background: #fff; color: black; transform: scale(1.05); }
+
+        /* Animation for waiting */
+        .waiting { animation: pulse 1.5s infinite; color: #aaa; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>INFINITY TIC-TAC-TOE</h1>
+    
+    <div id="link-section">
+        <span>Invite a friend:</span>
+        <code id="share-url">Generating link...</code>
+        <button class="btn" onclick="copyLink()">Copy Link</button>
+    </div>
+
+    <div id="status">Connecting...</div>
+
+    <div class="board" id="board">
+        <div class="cell" onclick="handleMove(0)"></div>
+        <div class="cell" onclick="handleMove(1)"></div>
+        <div class="cell" onclick="handleMove(2)"></div>
+        <div class="cell" onclick="handleMove(3)"></div>
+        <div class="cell" onclick="handleMove(4)"></div>
+        <div class="cell" onclick="handleMove(5)"></div>
+        <div class="cell" onclick="handleMove(6)"></div>
+        <div class="cell" onclick="handleMove(7)"></div>
+        <div class="cell" onclick="handleMove(8)"></div>
+    </div>
+
+    <button id="rematch-btn" class="btn" onclick="requestRematch()">Play Again</button>
+</div>
+
 <script>
     const peer = new Peer();
     let conn;
@@ -16,7 +82,7 @@
             conn = peer.connect(friendId);
             mySymbol = 'O';
             initConnection();
-            document.getElementById('status').innerText = "Connecting to friend...";
+            document.getElementById('status').innerText = "Connecting to peer...";
         } else {
             const shareUrl = window.location.href.split('?')[0] + "?join=" + id;
             document.getElementById('share-url').innerText = shareUrl;
@@ -28,15 +94,12 @@
         conn = c;
         mySymbol = 'X';
         isMyTurn = true;
-        document.getElementById('link-section').style.display = 'none';
         initConnection();
-        updateUI();
     });
 
     function initConnection() {
         conn.on('open', () => {
             document.getElementById('link-section').style.display = 'none';
-            document.getElementById('status').innerText = "Connected! " + (isMyTurn ? "Your turn (X)" : "Opponent's turn (O)");
             updateUI();
         });
         conn.on('data', (data) => {
@@ -78,15 +141,15 @@
             cells[i].innerText = board[i];
             cells[i].className = 'cell ' + (board[i] || '');
             
-            let nextPlayer = isMyTurn ? mySymbol : (mySymbol === 'X' ? 'O' : 'X');
-            if (moves[nextPlayer].length === 3 && moves[nextPlayer][0] === i) {
+            let nextP = isMyTurn ? mySymbol : (mySymbol === 'X' ? 'O' : 'X');
+            if (moves[nextP].length === 3 && moves[nextP][0] === i) {
                 cells[i].classList.add('next-off');
             }
         }
 
         if (!checkWinner(true)) {
-            statusEl.innerText = isMyTurn ? `Your turn (${mySymbol})` : "Opponent is thinking...";
-            statusEl.className = isMyTurn ? (mySymbol === 'X' ? 'X-color' : 'O-color') : '';
+            statusEl.innerText = isMyTurn ? `Your turn (${mySymbol})` : "Opponent's turn...";
+            statusEl.className = isMyTurn ? (mySymbol === 'X' ? 'X-color' : 'O-color') : 'waiting';
         }
     }
 
@@ -99,7 +162,7 @@
                 const statusEl = document.getElementById('status');
                 statusEl.innerText = winner + " WINS!";
                 statusEl.className = winner === 'X' ? 'X-color' : 'O-color';
-                document.getElementById('rematch-btn').style.display = 'inline-block';
+                document.getElementById('rematch-btn').style.display = 'block';
                 return true;
             }
         }
@@ -110,27 +173,23 @@
         iAmReady = true;
         document.getElementById('rematch-btn').style.display = 'none';
         document.getElementById('status').innerText = "Waiting for opponent...";
+        document.getElementById('status').className = 'waiting';
         conn.send({ type: 'ready-status' });
         checkBothReady();
     }
 
     function checkBothReady() {
         if (iAmReady && friendIsReady) {
-            resetGame();
+            board = Array(9).fill("");
+            moves = { X: [], O: [] };
+            iAmReady = false;
+            friendIsReady = false;
+            isMyTurn = (mySymbol === 'X'); 
+            updateUI();
         } else if (friendIsReady && !iAmReady) {
-            document.getElementById('status').innerText = "Opponent is ready for a rematch!";
+            document.getElementById('status').innerText = "Opponent wants a rematch!";
+            document.getElementById('status').className = '';
         }
-    }
-
-    function resetGame() {
-        board = Array(9).fill("");
-        moves = { X: [], O: [] };
-        iAmReady = false;
-        friendIsReady = false;
-        // Winner of last game starts? Let's say X always starts a new set
-        isMyTurn = (mySymbol === 'X'); 
-        document.getElementById('rematch-btn').style.display = 'none';
-        updateUI();
     }
 
     function copyLink() {
@@ -138,3 +197,5 @@
         navigator.clipboard.writeText(text).then(() => alert("Link copied!"));
     }
 </script>
+</body>
+</html>
