@@ -3,29 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>P2P Tic-Tac-Toe (3-Limit)</title>
+    <title>3-Bábus Tic-Tac-Toe Linkkel</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; align-items: center; }
-        .board { display: grid; grid-template-columns: repeat(3, 100px); gap: 10px; margin: 20px; }
-        .cell { width: 100px; height: 100px; background: #222; border: 2px solid #444; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; cursor: pointer; border-radius: 10px; }
-        .cell.next-off { color: #ff4444; opacity: 0.6; }
-        #info { margin: 10px; padding: 10px; background: #333; border-radius: 5px; }
-        input { padding: 5px; border-radius: 3px; border: none; }
-        button { padding: 5px 15px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 3px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+        .container { text-align: center; background: #252525; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .board { display: grid; grid-template-columns: repeat(3, 90px); gap: 10px; margin: 20px auto; }
+        .cell { width: 90px; height: 90px; background: #333; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; cursor: pointer; transition: 0.2s; }
+        .cell:hover { background: #444; }
+        .cell.next-off { color: #ff4757; opacity: 0.4; }
+        #status { margin: 15px 0; font-weight: bold; color: #00d4ff; }
+        #link-section { background: #111; padding: 10px; border-radius: 5px; font-size: 0.8rem; word-break: break-all; margin-bottom: 10px; display: none; }
+        .btn { background: #00d4ff; color: black; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1>3-Bábus Online Amőba</h1>
-
-    <div id="info">
-        <p>Saját ID: <strong id="my-id">...betöltés...</strong></p>
-        <input type="text" id="peer-id" placeholder="Barátod ID-ja">
-        <button onclick="connectToFriend()">Csatlakozás</button>
+<div class="container">
+    <h1>Tic-Tac-Toe 3x3</h1>
+    
+    <div id="link-section">
+        <p>Küldd el ezt a linket a barátodnak:</p>
+        <code id="share-url"></code>
+        <br><br>
+        <button class="btn" onclick="copyLink()">Link másolása</button>
     </div>
 
-    <div id="status">Várj a kapcsolódásra...</div>
+    <div id="status">Kapcsolódás a hálózathoz...</div>
 
     <div class="board" id="board">
         <div class="cell" onclick="makeMove(0)"></div>
@@ -38,91 +42,106 @@
         <div class="cell" onclick="makeMove(7)"></div>
         <div class="cell" onclick="makeMove(8)"></div>
     </div>
+</div>
 
-    <script>
-        let peer = new Peer();
-        let conn;
-        let mySymbol = 'X';
-        let isMyTurn = false;
-        let board = Array(9).fill("");
-        let moves = { X: [], O: [] };
+<script>
+    const peer = new Peer();
+    let conn;
+    let mySymbol = 'X';
+    let isMyTurn = false;
+    let board = Array(9).fill("");
+    let moves = { X: [], O: [] };
 
-        // 1. Saját azonosító generálása
-        peer.on('open', (id) => { document.getElementById('my-id').innerText = id; });
+    // Ellenőrizzük, hogy van-e ID az URL-ben
+    const urlParams = new URLSearchParams(window.location.search);
+    const friendId = urlParams.get('join');
 
-        // 2. Ha valaki csatlakozik hozzánk (Te vagy az 'X')
-        peer.on('connection', (c) => {
-            conn = c;
-            mySymbol = 'X';
-            isMyTurn = true;
-            setupConnection();
-            document.getElementById('status').innerText = "Barátod csatlakozott! Te jössz (X)";
-        });
-
-        // 3. Ha mi csatlakozunk valakihez (Te vagy az 'O')
-        function connectToFriend() {
-            const id = document.getElementById('peer-id').value;
-            conn = peer.connect(id);
+    peer.on('open', (id) => {
+        if (friendId) {
+            // Ha van ID, mi csatlakozunk (O játékos)
+            conn = peer.connect(friendId);
             mySymbol = 'O';
-            isMyTurn = false;
             setupConnection();
-            document.getElementById('status').innerText = "Csatlakozva! Várj az ellenfélre (O)";
+            document.getElementById('status').innerText = "Csatlakozás barátodhoz...";
+        } else {
+            // Ha nincs ID, mi vagyunk a host (X játékos)
+            const shareUrl = window.location.href.split('?')[0] + "?join=" + id;
+            document.getElementById('share-url').innerText = shareUrl;
+            document.getElementById('link-section').style.display = 'block';
+            document.getElementById('status').innerText = "Várakozás ellenfélre...";
         }
+    });
 
-        function setupConnection() {
-            conn.on('data', (data) => {
-                board = data.board;
-                moves = data.moves;
-                isMyTurn = true;
-                updateUI();
-                checkWinner();
-            });
-        }
+    peer.on('connection', (c) => {
+        conn = c;
+        mySymbol = 'X';
+        isMyTurn = true;
+        document.getElementById('link-section').style.display = 'none';
+        setupConnection();
+        updateUI();
+    });
 
-        function makeMove(index) {
-            if (!isMyTurn || board[index] !== "" || !conn) return;
-
-            // 3-as limit logika
-            if (moves[mySymbol].length === 3) {
-                const oldest = moves[mySymbol].shift();
-                board[oldest] = "";
-            }
-
-            board[index] = mySymbol;
-            moves[mySymbol].push(index);
-            
-            isMyTurn = false;
+    function setupConnection() {
+        conn.on('open', () => {
+            document.getElementById('status').innerText = "Játék indul! " + (isMyTurn ? "Te jössz (X)" : "Várj az ellenfélre (O)");
+        });
+        conn.on('data', (data) => {
+            board = data.board;
+            moves = data.moves;
+            isMyTurn = true;
             updateUI();
             checkWinner();
+        });
+    }
 
-            // Adat küldése a másiknak
-            conn.send({ board, moves });
-            document.getElementById('status').innerText = "Ellenfél következik...";
+    function makeMove(index) {
+        if (!isMyTurn || board[index] !== "" || !conn) return;
+
+        if (moves[mySymbol].length === 3) {
+            const oldest = moves[mySymbol].shift();
+            board[oldest] = "";
         }
 
-        function updateUI() {
-            const cells = document.getElementsByClassName('cell');
-            for (let i = 0; i < 9; i++) {
-                cells[i].innerText = board[i];
-                cells[i].classList.remove('next-off');
-                
-                // Jelöljük, melyik fog eltűnni
-                let nextPlayer = isMyTurn ? mySymbol : (mySymbol === 'X' ? 'O' : 'X');
-                if (moves[nextPlayer].length === 3 && moves[nextPlayer][0] === i) {
-                    cells[i].classList.add('next-off');
-                }
+        board[index] = mySymbol;
+        moves[mySymbol].push(index);
+        isMyTurn = false;
+        
+        updateUI();
+        conn.send({ board, moves });
+        checkWinner();
+    }
+
+    function updateUI() {
+        const cells = document.getElementsByClassName('cell');
+        for (let i = 0; i < 9; i++) {
+            cells[i].innerText = board[i];
+            cells[i].classList.remove('next-off');
+            
+            let nextP = isMyTurn ? mySymbol : (mySymbol === 'X' ? 'O' : 'X');
+            if (moves[nextP].length === 3 && moves[nextP][0] === i) {
+                cells[i].classList.add('next-off');
             }
         }
+        if (!isMyTurn) document.getElementById('status').innerText = "Ellenfél lép...";
+        else document.getElementById('status').innerText = "Te jössz (" + mySymbol + ")";
+    }
 
-        function checkWinner() {
-            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-            for (let w of wins) {
-                if (board[w[0]] && board[w[0]] === board[w[1]] && board[w[0]] === board[w[2]]) {
-                    alert("Győztes: " + board[w[0]]);
-                    location.reload();
-                }
+    function checkWinner() {
+        const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+        for (let w of wins) {
+            if (board[w[0]] && board[w[0]] === board[w[1]] && board[w[0]] === board[w[2]]) {
+                document.getElementById('status').innerText = "GYŐZELEM: " + board[w[0]];
+                alert("Játék vége! Győztes: " + board[w[0]]);
+                location.href = window.location.href.split('?')[0]; // Újratöltés ID nélkül
             }
         }
-    </script>
+    }
+
+    function copyLink() {
+        const text = document.getElementById('share-url').innerText;
+        navigator.clipboard.writeText(text);
+        alert("Link kimásolva!");
+    }
+</script>
 </body>
 </html>
