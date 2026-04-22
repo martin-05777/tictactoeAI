@@ -1,33 +1,128 @@
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>P2P Tic-Tac-Toe (3-Limit)</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; display: flex; flex-direction: column; align-items: center; }
+        .board { display: grid; grid-template-columns: repeat(3, 100px); gap: 10px; margin: 20px; }
+        .cell { width: 100px; height: 100px; background: #222; border: 2px solid #444; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; cursor: pointer; border-radius: 10px; }
+        .cell.next-off { color: #ff4444; opacity: 0.6; }
+        #info { margin: 10px; padding: 10px; background: #333; border-radius: 5px; }
+        input { padding: 5px; border-radius: 3px; border: none; }
+        button { padding: 5px 15px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 3px; }
+    </style>
+</head>
+<body>
 
-  // IDE KELL MÁSOLNOD A SAJÁT FIREBASE KONFIGURÁCIÓDAT (Lásd lentebb a magyarázatot)
-  const firebaseConfig = {
-    apiKey: "...",
-    authDomain: "...",
-    databaseURL: "...",
-    projectId: "...",
-    storageBucket: "...",
-    messagingSenderId: "...",
-    appId: "..."
-  };
+    <h1>3-Bábus Online Amőba</h1>
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-  const gameRef = ref(db, 'game/');
+    <div id="info">
+        <p>Saját ID: <strong id="my-id">...betöltés...</strong></p>
+        <input type="text" id="peer-id" placeholder="Barátod ID-ja">
+        <button onclick="connectToFriend()">Csatlakozás</button>
+    </div>
 
-  // Itt indul a játéklogika...
-  window.makeMove = (index) => {
-      // Itt küldjük fel az adatot a felhőbe
-      set(gameRef, { board, moves, currentPlayer });
-  };
+    <div id="status">Várj a kapcsolódásra...</div>
 
-  onValue(gameRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-          // Itt frissítjük a képernyőt minden játékosnál
-          updateLocalState(data);
-      }
-  });
-</script>
+    <div class="board" id="board">
+        <div class="cell" onclick="makeMove(0)"></div>
+        <div class="cell" onclick="makeMove(1)"></div>
+        <div class="cell" onclick="makeMove(2)"></div>
+        <div class="cell" onclick="makeMove(3)"></div>
+        <div class="cell" onclick="makeMove(4)"></div>
+        <div class="cell" onclick="makeMove(5)"></div>
+        <div class="cell" onclick="makeMove(6)"></div>
+        <div class="cell" onclick="makeMove(7)"></div>
+        <div class="cell" onclick="makeMove(8)"></div>
+    </div>
+
+    <script>
+        let peer = new Peer();
+        let conn;
+        let mySymbol = 'X';
+        let isMyTurn = false;
+        let board = Array(9).fill("");
+        let moves = { X: [], O: [] };
+
+        // 1. Saját azonosító generálása
+        peer.on('open', (id) => { document.getElementById('my-id').innerText = id; });
+
+        // 2. Ha valaki csatlakozik hozzánk (Te vagy az 'X')
+        peer.on('connection', (c) => {
+            conn = c;
+            mySymbol = 'X';
+            isMyTurn = true;
+            setupConnection();
+            document.getElementById('status').innerText = "Barátod csatlakozott! Te jössz (X)";
+        });
+
+        // 3. Ha mi csatlakozunk valakihez (Te vagy az 'O')
+        function connectToFriend() {
+            const id = document.getElementById('peer-id').value;
+            conn = peer.connect(id);
+            mySymbol = 'O';
+            isMyTurn = false;
+            setupConnection();
+            document.getElementById('status').innerText = "Csatlakozva! Várj az ellenfélre (O)";
+        }
+
+        function setupConnection() {
+            conn.on('data', (data) => {
+                board = data.board;
+                moves = data.moves;
+                isMyTurn = true;
+                updateUI();
+                checkWinner();
+            });
+        }
+
+        function makeMove(index) {
+            if (!isMyTurn || board[index] !== "" || !conn) return;
+
+            // 3-as limit logika
+            if (moves[mySymbol].length === 3) {
+                const oldest = moves[mySymbol].shift();
+                board[oldest] = "";
+            }
+
+            board[index] = mySymbol;
+            moves[mySymbol].push(index);
+            
+            isMyTurn = false;
+            updateUI();
+            checkWinner();
+
+            // Adat küldése a másiknak
+            conn.send({ board, moves });
+            document.getElementById('status').innerText = "Ellenfél következik...";
+        }
+
+        function updateUI() {
+            const cells = document.getElementsByClassName('cell');
+            for (let i = 0; i < 9; i++) {
+                cells[i].innerText = board[i];
+                cells[i].classList.remove('next-off');
+                
+                // Jelöljük, melyik fog eltűnni
+                let nextPlayer = isMyTurn ? mySymbol : (mySymbol === 'X' ? 'O' : 'X');
+                if (moves[nextPlayer].length === 3 && moves[nextPlayer][0] === i) {
+                    cells[i].classList.add('next-off');
+                }
+            }
+        }
+
+        function checkWinner() {
+            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            for (let w of wins) {
+                if (board[w[0]] && board[w[0]] === board[w[1]] && board[w[0]] === board[w[2]]) {
+                    alert("Győztes: " + board[w[0]]);
+                    location.reload();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
