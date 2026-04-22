@@ -1,0 +1,33 @@
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+  // IDE KELL MÁSOLNOD A SAJÁT FIREBASE KONFIGURÁCIÓDAT (Lásd lentebb a magyarázatot)
+  const firebaseConfig = {
+    apiKey: "...",
+    authDomain: "...",
+    databaseURL: "...",
+    projectId: "...",
+    storageBucket: "...",
+    messagingSenderId: "...",
+    appId: "..."
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const gameRef = ref(db, 'game/');
+
+  // Itt indul a játéklogika...
+  window.makeMove = (index) => {
+      // Itt küldjük fel az adatot a felhőbe
+      set(gameRef, { board, moves, currentPlayer });
+  };
+
+  onValue(gameRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+          // Itt frissítjük a képernyőt minden játékosnál
+          updateLocalState(data);
+      }
+  });
+</script>
