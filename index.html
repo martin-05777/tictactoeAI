@@ -62,20 +62,54 @@
             <p id="coin-text" style="color:var(--blue); font-weight:bold; margin-top:15px;">FLIPPING...</p>
         </div>
 
+<style>
+    /* Hide the actual checkbox */
+    #mode-toggle { display: none; }
+
+    /* Hide nickname by default */
+    #nick-container { display: none; }
+
+    /* DEFAULT TEXT (When checkbox is NOT checked - Login Mode) */
+    .show-signup { display: inline; }
+    .show-login { display: none; }
+
+    /* WHEN CHECKED (Sign Up Mode) */
+    #mode-toggle:checked ~ #nick-container { 
+        display: block; 
+    }
+    #mode-toggle:checked ~ #auth-title::after { 
+        content: " SIGN UP"; 
+    }
+    #mode-toggle:checked ~ #auth-title { 
+        font-size: 0; /* Hides the original "LOGIN" text */
+    }
+    #mode-toggle:checked ~ #auth-title::after { 
+        font-size: 2rem; /* Shows "SIGN UP" instead */
+    }
+
+    /* Flip the bottom text toggle */
+    #mode-toggle:checked ~ #auth-toggle-btn .show-signup { display: none; }
+    #mode-toggle:checked ~ #auth-toggle-btn .show-login { display: inline; }
+</style>
+
 <div id="auth-ui">
+    <input type="checkbox" id="mode-toggle">
+
     <h2 id="auth-title">LOGIN</h2>
+    
     <input type="email" id="email-input" placeholder="Email">
     <input type="password" id="password-input" placeholder="Password">
     
-    <div id="nick-container" style="display:none;">
+    <div id="nick-container">
         <input type="text" id="username-input" placeholder="Nickname">
     </div>
     
-    <button class="btn" style="background:var(--blue)" onclick="handleAuth()">Enter</button>
+    <button class="btn" style="background:var(--blue)">Enter</button>
     
-    <p id="auth-toggle-btn" onclick="toggleAuthMode()" style="cursor:pointer; font-size:0.75rem; margin-top:15px; color:#444;">
-        No account? <span style="color:var(--blue)">Sign Up</span>
-    </p>
+    <label for="mode-toggle" id="auth-toggle-btn" style="cursor:pointer; display:block; font-size:0.75rem; margin-top:15px; color:#444;">
+        <span class="show-signup">No account? <span style="color:var(--blue)">Sign Up</span></span>
+        <span class="show-login">Already have an account? <span style="color:var(--blue)">Login</span></span>
+    </label>
 </div>
 
         <div id="social-ui" style="display:none;">
