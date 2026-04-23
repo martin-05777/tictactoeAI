@@ -3,74 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinity Tic-Tac-Toe Social</title>
+    <title>Infinity Tic-Tac-Toe - Global Edition</title>
     
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 
     <style>
-        :root { --blue: #00d4ff; --red: #ff4757; --bg: #0a0a0a; --card: #161616; --text: #ffffff; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; overflow-x: hidden; }
-        .box { background: var(--card); padding: 40px; border-radius: 28px; width: 90%; max-width: 380px; border: 1px solid #333; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.6); }
-        h2 { letter-spacing: 4px; margin-bottom: 30px; font-size: 2rem; font-weight: 900; color: var(--blue); }
-        input { width: 100%; padding: 20px; margin: 15px 0; border-radius: 14px; border: 2px solid #333; background: #000; color: white; font-size: 1.1rem; box-sizing: border-box; outline: none; }
-        input:focus { border-color: var(--blue); }
-        .btn { background: var(--blue); color: #000; border: none; padding: 22px; border-radius: 14px; cursor: pointer; font-weight: 800; width: 100%; font-size: 1.2rem; text-transform: uppercase; margin-top: 10px; }
-        .btn:hover { background: #fff; }
-        .friend-list { list-style: none; padding: 0; margin-top: 25px; }
-        .friend-item { background: #222; padding: 18px; margin-bottom: 12px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #333; }
-        #game-area { display: none; text-align: center; width: 100%; }
-        .board { display: grid; grid-template-columns: repeat(3, 100px); gap: 15px; margin: 30px auto; width: 330px; justify-content: center; }
-        .cell { width: 100px; height: 100px; background: #1a1a1a; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; cursor: pointer; border: 2px solid #333; font-weight: 900; }
-        .cell.X { color: var(--blue); }
-        .cell.O { color: var(--red); }
-        .cell.next-off { opacity: 0.2; filter: grayscale(1); }
-        #status { font-weight: 800; margin-bottom: 20px; font-size: 1.5rem; height: 1.5em; text-transform: uppercase; }
+        :root { --blue: #00d4ff; --red: #ff4757; --bg: #050505; --card: #0f0f0f; --text: #ffffff; --orange: #ff9f43; --green: #2ed573; --purple: #a55eea; }
+        
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; overflow: hidden; }
+        
+        .box { background: var(--card); padding: 35px; border-radius: 30px; width: 90%; max-width: 400px; border: 1px solid #1a1a1a; text-align: center; box-shadow: 0 25px 60px rgba(0,0,0,0.9); position: relative; max-height: 90vh; overflow-y: auto; }
+        h2 { letter-spacing: 5px; color: var(--blue); margin-bottom: 25px; font-weight: 900; text-transform: uppercase; }
+
+        input, select { width: 100%; padding: 16px; border-radius: 14px; border: 1px solid #222; background: #000; color: white; outline: none; margin: 10px 0; box-sizing: border-box; font-size: 0.9rem; }
+        
+        select { 
+            color: var(--blue); 
+            cursor: pointer; 
+            appearance: none; 
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300d4ff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat; 
+            background-position: right 15px center; 
+            background-size: 15px; 
+        }
+
+        .btn { border: none; padding: 18px; border-radius: 14px; cursor: pointer; font-weight: 800; width: 100%; font-size: 0.9rem; text-transform: uppercase; margin-top: 15px; transition: 0.2s; }
+        .btn:hover { filter: brightness(0.85); transform: translateY(-2px); }
+        
+        /* Matchmaking States */
+        #match-btn { background: var(--orange); color: #000; }
+        #match-btn.searching { background: var(--red); color: #fff; box-shadow: 0 0 20px rgba(255, 71, 87, 0.3); }
+
+        #coin-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5,5,5,0.98); border-radius: 30px; z-index: 100; flex-direction: column; align-items: center; justify-content: center; }
+        .coin { width: 100px; height: 100px; background: var(--blue); border-radius: 50%; border: 4px solid #fff; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 3rem; color: #000; }
+        .spinning { animation: flipLoop 0.15s infinite linear; }
+        @keyframes flipLoop { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(180deg); } }
+
+        #game-area { display: none; text-align: center; }
+        .board { display: grid; grid-template-columns: repeat(3, 100px); gap: 10px; margin: 20px auto; justify-content: center; }
+        .cell { width: 100px; height: 100px; background: #000; border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 3rem; cursor: pointer; border: 1px solid #1a1a1a; font-weight: 900; }
+        .X { color: var(--blue); } .O { color: var(--red); }
+        
+        .warning-piece { animation: pulse-hint 1s infinite alternate; }
+        @keyframes pulse-hint { from { opacity: 0.7; transform: scale(1); } to { opacity: 0.15; transform: scale(0.9); } }
+        
+        .panel { background: #0a0a0a; padding: 15px; border-radius: 15px; border: 1px solid #222; margin-top: 15px; display: none; text-align: left; }
+        .friend-item { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #1a1a1a; font-size: 0.8rem; }
+        .small-btn { padding: 6px 10px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; font-size: 0.7rem; }
     </style>
 </head>
 <body>
 
-    <div class="box" id="lobby-ui">
-        <h2>INF TTT</h2>
-        <div id="setup-area">
-            <input type="text" id="username-input" placeholder="Choose Nickname">
-            <button class="btn" onclick="initUser()">Create Profile</button>
+    <div class="box" id="main-container">
+        <div id="coin-overlay">
+            <div class="coin" id="coin-element">?</div>
+            <p id="coin-text" style="color:var(--blue); font-weight:bold; margin-top:15px;">FLIPPING...</p>
         </div>
-        <div id="social-area" style="display: none;">
-            <p style="color: #aaa; margin-bottom: 20px;">Playing as: <b id="display-name" style="color: var(--blue);"></b></p>
-            <input type="text" id="search-friend" placeholder="Friend's Name">
-            <button class="btn" style="padding: 15px; font-size: 1rem;" onclick="addFriend()">Add Friend</button>
-            <ul id="friend-list-ui" class="friend-list"></ul>
+
+        <div id="auth-ui">
+            <h2 id="auth-title">LOGIN</h2>
+            <input type="email" id="email-input" placeholder="Email">
+            <input type="password" id="password-input" placeholder="Password">
+            <div id="nick-container" style="display:none;"><input type="text" id="username-input" placeholder="Nickname"></div>
+            <button class="btn" style="background:var(--blue)" onclick="handleAuth()">Enter</button>
+            <p onclick="toggleAuthMode()" style="cursor:pointer; font-size:0.75rem; margin-top:15px; color:#444;">Switch Mode</p>
+        </div>
+
+        <div id="social-ui" style="display:none;">
+            <h2>Lobby</h2>
+            <button class="btn" style="background:var(--green)" onclick="togglePanel('training-panel')">Training Mode</button>
+            <div id="training-panel" class="panel">
+                <label style="font-size:0.6rem; color:#444;">DIFFICULTY</label>
+                <select id="bot-diff"><option value="easy">Easy</option><option value="med">Medium</option><option value="hard">Hard</option></select>
+                <label style="font-size:0.6rem; color:#444;">SYMBOL</label>
+                <select id="start-choice"><option value="coin">Coin Flip</option><option value="X">Play as X</option><option value="O">Play as O</option></select>
+                <button class="btn" style="background:var(--green); color:#000;" onclick="startBotGame()">Start Bot Game</button>
+            </div>
+
+            <button class="btn" style="background:var(--purple)" onclick="togglePanel('social-panel')">Social & Friends</button>
+            <div id="social-panel" class="panel">
+                <div style="margin-bottom:15px; border-bottom:1px solid #222; padding-bottom:10px;">
+                    <p style="color:var(--orange); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">FIND PLAYER</p>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="search-nick" placeholder="Nickname" style="margin:0; padding:10px; font-size:0.75rem;">
+                        <button class="small-btn" style="background:var(--blue); color:#000;" onclick="searchAndAdd()">ADD</button>
+                    </div>
+                </div>
+                <p style="color:var(--purple); font-size:0.6rem; font-weight:bold; margin-bottom:5px;">PENDING REQUESTS</p>
+                <div id="pending-list"></div>
+                <p style="color:var(--blue); font-size:0.6rem; font-weight:bold; margin:10px 0 5px 0;">FRIENDS LIST</p>
+                <div id="friends-list"></div>
+            </div>
+
+            <button class="btn" id="match-btn" style="margin-top:20px;" onclick="handleMatchmakingClick()">Online Match</button>
+            <p style="font-size:0.8rem; margin-top:25px; color:#444;">ID: <span id="display-name" style="color:var(--blue)"></span></p>
+            <button class="btn" style="background:#111; color:#333; font-size:0.7rem;" onclick="auth.signOut()">Logout</button>
         </div>
     </div>
 
     <div id="game-area">
-        <div id="status">Wait...</div>
-        <div class="board" id="board">
-            <div class="cell" onclick="handleMove(0)"></div>
-            <div class="cell" onclick="handleMove(1)"></div>
-            <div class="cell" onclick="handleMove(2)"></div>
-            <div class="cell" onclick="handleMove(3)"></div>
-            <div class="cell" onclick="handleMove(4)"></div>
-            <div class="cell" onclick="handleMove(5)"></div>
-            <div class="cell" onclick="handleMove(6)"></div>
-            <div class="cell" onclick="handleMove(7)"></div>
-            <div class="cell" onclick="handleMove(8)"></div>
+        <h2 id="status"></h2>
+        <div class="board" id="game-board"></div>
+        <div id="post-game-options" style="display:none; margin-bottom: 20px;">
+            <button class="btn" id="add-friend-btn" style="background:var(--purple); width:220px; margin:auto;">Add as Friend</button>
         </div>
-        <button class="btn" style="background: #222; color: white; width: 200px;" onclick="location.reload()">Quit Game</button>
+        <button class="btn" style="width:120px; background:#111; color:#333;" onclick="resetToLobby()">Quit</button>
     </div>
 
     <script>
-        // 2. INITIALIZE VARIABLES PROPERLY
-        let myName = ""; 
-        let myID = ""; 
-        let currentGameID = ""; 
-        let mySymbol = "";
-        let isMyTurn = false;
-        let board = Array(9).fill("");
-        let moves = { X:[], O:[] };
-
-        // 3. FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAt_qIzv2o23gdbNXIjPI_25vC9Ar-wuWo",
             authDomain: "tictactoe-ae351.firebaseapp.com",
@@ -80,123 +122,240 @@
             messagingSenderId: "283214751508",
             appId: "1:283214751508:web:282f440b28862af7838401"
         };
-
-        // 4. START FIREBASE
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
+        const auth = firebase.auth(), db = firebase.database();
 
-        function initUser() {
-            myName = document.getElementById('username-input').value.trim();
-            if (!myName) return alert("Enter a name!");
-            myID = 'u' + Math.floor(Math.random() * 999999);
-            
-            db.ref('directory/' + myName).set(myID).then(() => {
-                document.getElementById('setup-area').style.display = 'none';
-                document.getElementById('social-area').style.display = 'block';
-                document.getElementById('display-name').innerText = myName;
-                listenForInvites();
-                renderFriends();
-            }).catch((err) => {
-                console.error(err);
-                alert("Error! Check your Firebase Database Rules tab.");
-            });
+        let mySymbol = "X", botSymbol = "O", difficulty = "hard", isOnline = false, isSearching = false;
+        let gameID = null, lastOpponentID = null, board = Array(9).fill(""), moves = {X:[], O:[]}, isMyTurn = true;
+
+        // --- INTERFACE CONTROL ---
+        function togglePanel(id) {
+            const el = document.getElementById(id);
+            const wasOpen = el.style.display === 'block';
+            document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+            el.style.display = wasOpen ? 'none' : 'block';
         }
 
-        function addFriend() {
-            const target = document.getElementById('search-friend').value.trim();
-            if(!target) return;
-            db.ref('directory/' + target).once('value', s => {
-                if(s.exists()) {
-                    let friends = JSON.parse(localStorage.getItem('ttt_friends') || '{}');
-                    friends[target] = s.val();
-                    localStorage.setItem('ttt_friends', JSON.stringify(friends));
-                    renderFriends();
-                    document.getElementById('search-friend').value = "";
-                } else alert("Player not found!");
+        // --- AUTH ---
+        function toggleAuthMode() {
+            const isLogin = document.getElementById('auth-title').innerText === "LOGIN";
+            document.getElementById('auth-title').innerText = isLogin ? "SIGN UP" : "LOGIN";
+            document.getElementById('nick-container').style.display = isLogin ? "block" : "none";
+        }
+        async function handleAuth() {
+            const e = document.getElementById('email-input').value, p = document.getElementById('password-input').value;
+            try {
+                if (document.getElementById('nick-container').style.display === "none") await auth.signInWithEmailAndPassword(e, p);
+                else {
+                    const n = document.getElementById('username-input').value, r = await auth.createUserWithEmailAndPassword(e, p);
+                    await r.user.sendEmailVerification();
+                    await db.ref('users/' + r.user.uid).set({ nickname: n });
+                    alert("Verify email!");
+                }
+            } catch (err) { alert(err.message); }
+        }
+        auth.onAuthStateChanged(user => {
+            if (user && user.emailVerified) {
+                db.ref('users/' + user.uid).once('value', s => {
+                    document.getElementById('display-name').innerText = s.val() ? s.val().nickname : user.email.split('@')[0];
+                    document.getElementById('auth-ui').style.display = 'none';
+                    document.getElementById('social-ui').style.display = 'block';
+                    loadSocial();
+                });
+            } else { document.getElementById('auth-ui').style.display = 'block'; document.getElementById('social-ui').style.display = 'none'; }
+        });
+
+        // --- SOCIAL ---
+        function loadSocial() {
+            const uid = auth.currentUser.uid;
+            db.ref(`requests/${uid}`).on('value', s => {
+                const list = document.getElementById('pending-list'); list.innerHTML = "";
+                s.forEach(req => {
+                    db.ref(`users/${req.key}/nickname`).once('value', n => {
+                        list.innerHTML += `<div class="friend-item"><span>${n.val()}</span><div>
+                            <button class="small-btn" style="background:var(--green)" onclick="respondReq('${req.key}','accept')">✔</button>
+                            <button class="small-btn" style="background:var(--red)" onclick="respondReq('${req.key}','reject')">✖</button>
+                        </div></div>`;
+                    });
+                });
+            });
+            db.ref(`friends/${uid}`).on('value', s => {
+                const list = document.getElementById('friends-list'); list.innerHTML = "";
+                s.forEach(f => {
+                    db.ref(`users/${f.key}/nickname`).once('value', n => {
+                        list.innerHTML += `<div class="friend-item"><span>${n.val()}</span><button class="small-btn" style="background:var(--purple)" onclick="challengeFriend('${f.key}')">Play</button></div>`;
+                    });
+                });
             });
         }
-
-        function renderFriends() {
-            const friends = JSON.parse(localStorage.getItem('ttt_friends') || '{}');
-            const ui = document.getElementById('friend-list-ui');
-            ui.innerHTML = "";
-            for(let name in friends) {
-                ui.innerHTML += `<li class="friend-item">
-                    <span>${name}</span>
-                    <button class="btn" style="width:auto; margin:0; padding: 10px 20px; font-size: 0.9rem;" onclick="invite('${friends[name]}')">Challenge</button>
-                </li>`;
+        function respondReq(uid, act) {
+            if(act === 'accept') {
+                db.ref(`friends/${auth.currentUser.uid}/${uid}`).set(true);
+                db.ref(`friends/${uid}/${auth.currentUser.uid}`).set(true);
             }
+            db.ref(`requests/${auth.currentUser.uid}/${uid}`).remove();
+        }
+        function searchAndAdd() {
+            const nick = document.getElementById('search-nick').value.trim();
+            if(!nick) return;
+            db.ref('users').orderByChild('nickname').equalTo(nick).once('value', s => {
+                if(s.exists()) sendFriendRequest(Object.keys(s.val())[0]);
+                else alert("Not found!");
+            });
+        }
+        function sendFriendRequest(tid) {
+            if(tid === auth.currentUser.uid) return;
+            db.ref(`requests/${tid}/${auth.currentUser.uid}`).set(true);
+            alert("Sent!");
+        }
+        function challengeFriend(fuid) {
+            gameID = "direct_" + [auth.currentUser.uid, fuid].sort().join("_");
+            db.ref('games/' + gameID).set({ board: Array(9).fill(""), turn: auth.currentUser.uid, moves: {X:[], O:[]}, challenger: auth.currentUser.uid });
+            joinGame(gameID, "X", fuid);
         }
 
-        function invite(fid) {
-            const gid = myID + "_" + fid;
-            db.ref('invites/' + fid).set({ from: myName, fromID: myID, gid: gid });
-            startGame(gid, "X");
-        }
-
-        function listenForInvites() {
-            db.ref('invites/' + myID).on('value', s => {
-                const d = s.val();
-                if(d) {
-                    if(confirm(d.from + " challenged you! Accept?")) {
-                        db.ref('invites/' + myID).remove();
-                        startGame(d.gid, "O");
-                    }
+        // --- MATCHMAKING ---
+        function handleMatchmakingClick() { if (isSearching) cancelMatchmaking(); else startMatchmaking(); }
+        function startMatchmaking() {
+            isSearching = true; 
+            const btn = document.getElementById('match-btn');
+            btn.innerText = "CANCEL SEARCH";
+            btn.classList.add('searching');
+            
+            const q = db.ref('queue');
+            q.once('value', s => {
+                if(!isSearching) return;
+                if(s.exists()){
+                    const opp = Object.keys(s.val())[0]; gameID = opp + "_" + auth.currentUser.uid;
+                    q.child(opp).remove(); db.ref('games/'+gameID).set({board:Array(9).fill(""), turn:opp, moves:{X:[],O:[]}});
+                    joinGame(gameID, "O", opp);
+                } else {
+                    q.child(auth.currentUser.uid).set(true);
+                    db.ref('games').on('child_added', sn => { if(sn.key.includes(auth.currentUser.uid)) joinGame(sn.key, "X", sn.key.replace(auth.currentUser.uid,"").replace("_","")); });
                 }
             });
         }
-
-        function startGame(gid, symbol) {
-            currentGameID = gid;
-            mySymbol = symbol;
-            isMyTurn = (symbol === "X");
-            document.getElementById('lobby-ui').style.display = 'none';
-            document.getElementById('game-area').style.display = 'block';
-            
-            db.ref('games/' + gid).on('value', s => {
-                const data = s.val();
-                if(data && data.lastMover !== myID) {
-                    board = data.board;
-                    moves = data.moves;
-                    isMyTurn = true;
-                    updateUI();
-                    checkWinner();
-                }
-            });
-            updateUI();
+        function cancelMatchmaking() { 
+            isSearching = false; 
+            db.ref('queue').child(auth.currentUser.uid).remove(); 
+            db.ref('games').off(); 
+            const btn = document.getElementById('match-btn');
+            btn.innerText = "ONLINE MATCH"; 
+            btn.classList.remove('searching');
         }
 
-        function handleMove(idx) {
-            if(!isMyTurn || board[idx] !== "") return;
-            if(moves[mySymbol].length === 3) {
-                board[moves[mySymbol].shift()] = "";
+        // --- GAMEPLAY CORE ---
+        function joinGame(id, sym, opp) {
+            gameID = id; mySymbol = sym; lastOpponentID = opp; isOnline = true; isSearching = false;
+            document.getElementById('main-container').style.display = 'none'; document.getElementById('game-area').style.display = 'block';
+            db.ref('games/'+id).on('value', s => {
+                const d = s.val(); if(!d) return;
+                board = d.board; moves = d.moves || {X:[],O:[]}; isMyTurn = (d.turn === auth.currentUser.uid);
+                renderBoard(); checkWinner();
+            });
+        }
+        function renderBoard() {
+            const c = document.getElementById('game-board'); c.innerHTML = "";
+            board.forEach((v, i) => {
+                let w = (v && moves[v][0] === i && moves[v].length === 3) ? "warning-piece" : "";
+                c.innerHTML += `<div class="cell ${v} ${w}" onclick="makeMove(${i})">${v||''}</div>`;
+            });
+            document.getElementById('status').innerText = isMyTurn ? "Your Turn" : "Opponent Thinking...";
+        }
+        function makeMove(i) {
+            if(!isMyTurn || board[i] !== "") return;
+            if(isOnline){
+                if(moves[mySymbol].length===3) board[moves[mySymbol].shift()] = "";
+                board[i] = mySymbol; moves[mySymbol].push(i);
+                db.ref('games/'+gameID).update({board, turn:lastOpponentID, moves});
+            } else {
+                if(moves[mySymbol].length===3) board[moves[mySymbol].shift()] = "";
+                board[i] = mySymbol; moves[mySymbol].push(i);
+                isMyTurn = false; renderBoard(); if(!checkWinner()) botMove();
             }
-            board[idx] = mySymbol;
-            moves[mySymbol].push(idx);
-            isMyTurn = false;
-            updateUI();
-            db.ref('games/' + currentGameID).set({ board, moves, lastMover: myID });
-            checkWinner();
         }
-
-        function updateUI() {
-            const cells = document.querySelectorAll('.cell');
-            board.forEach((val, i) => {
-                cells[i].innerText = val;
-                cells[i].className = 'cell ' + (val || '');
-                let nextP = isMyTurn ? mySymbol : (mySymbol === 'X' ? 'O' : 'X');
-                if (moves[nextP].length === 3 && moves[nextP][0] === i) cells[i].classList.add('next-off');
-            });
-            document.getElementById('status').innerText = isMyTurn ? "Your Turn ("+mySymbol+")" : "Opponent Turn...";
+        function botMove() {
+            setTimeout(() => {
+                const av = board.map((v,i)=>v===""?i:null).filter(v=>v!==null);
+                let m = (difficulty==="hard") ? findBestMove(false) : av[Math.floor(Math.random()*av.length)];
+                if(moves[botSymbol].length===3) board[moves[botSymbol].shift()] = "";
+                board[m] = botSymbol; moves[botSymbol].push(m);
+                isMyTurn = true; renderBoard(); checkWinner();
+            }, 600);
         }
-
         function checkWinner() {
             const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
-            for (let w of wins) {
-                if (board[w[0]] && board[w[0]] === board[w[1]] && board[w[0]] === board[w[2]]) {
-                    setTimeout(() => { alert(board[w[0]] + " WINS!"); location.reload(); }, 100);
+            let win = wins.find(w => board[w[0]] && board[w[0]] === board[w[1]] && board[w[0]] === board[w[2]]);
+            if(win){
+                const res = board[win[0]] === mySymbol ? "You won!" : "You lost!";
+                document.getElementById('status').innerText = res;
+                if(isOnline) {
+                    document.getElementById('post-game-options').style.display='block';
+                    document.getElementById('add-friend-btn').onclick = () => sendFriendRequest(lastOpponentID);
                 }
+                setTimeout(()=> { alert(res); resetToLobby(); }, 1200); return true;
+            } return false;
+        }
+        function findBestMove(bl) {
+            let b = -Infinity, m, av = board.map((v,i)=>v===""?i:null).filter(v=>v!==null);
+            for(let i of av) {
+                let tb = [...board], tm = {X:[...moves.X], O:[...moves.O]};
+                if(tm[botSymbol].length===3) tb[tm[botSymbol].shift()] = "";
+                tb[i] = botSymbol; if(checkWinSim(tb, botSymbol)) return i;
+                let s = minimax(tb, tm, 0, false); if(s > b) { b = s; m = i; }
+            } return m || av[0];
+        }
+        function minimax(b, m, d, mx) {
+            if(checkWinSim(b, botSymbol)) return 10-d; if(checkWinSim(b, mySymbol)) return d-10; if(d>3) return 0;
+            let av = b.map((v,i)=>v===""?i:null).filter(v=>v!==null), r = mx ? -Infinity : Infinity;
+            for(let i of av){
+                let nb = [...b], nm = {X:[...m.X], O:[...m.O]}, s = mx ? botSymbol : mySymbol;
+                if(nm[s].length===3) nb[nm[s].shift()] = "";
+                nb[i] = s; nm[s].push(i);
+                let v = minimax(nb, nm, d+1, !mx); r = mx ? Math.max(r, v) : Math.min(r, v);
+            } return r;
+        }
+        function checkWinSim(b, s) { return [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].some(w => b[w[0]]===s && b[w[1]]===s && b[w[2]]===s); }
+        
+        // --- BOT GAME LOGIC ---
+        function startBotGame() {
+            isOnline = false; difficulty = document.getElementById('bot-diff').value;
+            const ch = document.getElementById('start-choice').value;
+            const coinOverlay = document.getElementById('coin-overlay');
+            const coinEl = document.getElementById('coin-element');
+
+            if(ch === 'coin'){
+                coinEl.classList.remove('spinning');
+                coinEl.innerText = "?";
+                coinOverlay.style.display = 'flex';
+                void coinEl.offsetWidth; // Refresh animation
+                coinEl.classList.add('spinning');
+
+                setTimeout(() => { 
+                    mySymbol = Math.random() > 0.5 ? "X" : "O"; 
+                    coinEl.classList.remove('spinning');
+                    coinEl.innerText = mySymbol;
+                    setTimeout(() => finalizeBot(), 800);
+                }, 1200);
+            } else { 
+                mySymbol = ch; finalizeBot(); 
             }
+        }
+        function finalizeBot() {
+            botSymbol = mySymbol === "X" ? "O" : "X"; 
+            document.getElementById('coin-overlay').style.display='none';
+            document.getElementById('main-container').style.display='none'; 
+            document.getElementById('game-area').style.display='block';
+            board = Array(9).fill(""); moves = {X:[], O:[]}; isMyTurn = (mySymbol === "X"); renderBoard(); if(!isMyTurn) botMove();
+        }
+
+        function resetToLobby() {
+            if(gameID) db.ref('games/'+gameID).off();
+            document.getElementById('game-area').style.display = 'none'; 
+            document.getElementById('main-container').style.display = 'block';
+            cancelMatchmaking(); 
+            board = Array(9).fill(""); moves = {X:[],O:[]}; isOnline = false;
+            document.getElementById('search-nick').value = "";
         }
     </script>
 </body>
