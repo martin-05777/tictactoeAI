@@ -3,56 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Infinity TTT - Social Edition</title>
+    <title>Infinity Tic-Tac-Toe Social</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-global.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-global.js"></script>
     <style>
-        :root { --blue: #00d4ff; --red: #ff4757; --bg: #121212; --card: #1e1e1e; }
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: white; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .box { background: var(--card); padding: 25px; border-radius: 20px; width: 350px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); text-align: center; border: 1px solid #333; }
-        input { width: 90%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #333; background: #000; color: white; outline: none; }
-        input:focus { border-color: var(--blue); }
-        .btn { background: var(--blue); color: black; border: none; padding: 12px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; margin-top: 10px; }
-        .btn:hover { transform: scale(1.03); filter: brightness(1.1); }
+        :root { --blue: #00d4ff; --red: #ff4757; --bg: #0a0a0a; --card: #161616; --text: #ffffff; }
         
-        .friend-list { list-style: none; padding: 0; margin-top: 20px; max-height: 250px; overflow-y: auto; }
-        .friend-item { background: #2a2a2a; padding: 12px; margin-bottom: 8px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--blue); }
-        
-        /* Game Board Styles */
-        #game-area { display: none; text-align: center; }
-        .board { display: grid; grid-template-columns: repeat(3, 100px); gap: 10px; margin: 20px auto; }
-        .cell { width: 100px; height: 100px; background: #2a2a2a; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 3rem; cursor: pointer; border: 1px solid #444; transition: 0.2s; }
-        .cell:hover { background: #333; }
-        .cell.X { color: var(--blue); text-shadow: 0 0 10px rgba(0,212,255,0.5); }
-        .cell.O { color: var(--red); text-shadow: 0 0 10px rgba(255,71,87,0.5); }
-        .cell.next-off { opacity: 0.25; filter: blur(1px); }
-        #status { font-weight: bold; margin-bottom: 10px; font-size: 1.3rem; min-height: 1.5em; }
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg); color: var(--text); 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            min-height: 100vh; margin: 0; overflow-x: hidden;
+        }
+
+        .box { 
+            background: var(--card); padding: 40px; border-radius: 28px; 
+            width: 90%; max-width: 380px; border: 1px solid #333; 
+            text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+        }
+
+        h2 { letter-spacing: 4px; margin-bottom: 30px; font-size: 2rem; font-weight: 900; color: var(--blue); }
+
+        /* Inputs & Buttons - Large & Sharp */
+        input { 
+            width: 100%; padding: 20px; margin: 15px 0; border-radius: 14px; 
+            border: 2px solid #333; background: #000; color: white; 
+            font-size: 1.1rem; box-sizing: border-box; outline: none; transition: 0.2s;
+        }
+        input:focus { border-color: var(--blue); background: #050505; }
+
+        .btn { 
+            background: var(--blue); color: #000; border: none; padding: 22px; 
+            border-radius: 14px; cursor: pointer; font-weight: 800; width: 100%; 
+            font-size: 1.2rem; text-transform: uppercase; letter-spacing: 1px;
+            transition: 0.2s; margin-top: 10px;
+        }
+        .btn:hover { background: #fff; transform: translateY(-2px); }
+        .btn:active { transform: translateY(0); }
+
+        /* Social Hub */
+        .friend-list { list-style: none; padding: 0; margin-top: 25px; }
+        .friend-item { 
+            background: #222; padding: 18px; margin-bottom: 12px; border-radius: 14px; 
+            display: flex; justify-content: space-between; align-items: center; border: 1px solid #333;
+        }
+        .friend-name { font-weight: 600; font-size: 1.1rem; }
+
+        /* Game Board */
+        #game-area { display: none; text-align: center; width: 100%; }
+        .board { 
+            display: grid; grid-template-columns: repeat(3, 100px); gap: 15px; 
+            margin: 30px auto; width: 330px; justify-content: center;
+        }
+        .cell { 
+            width: 100px; height: 100px; background: #1a1a1a; border-radius: 18px; 
+            display: flex; align-items: center; justify-content: center; font-size: 3.5rem; 
+            cursor: pointer; border: 2px solid #333; transition: 0.2s; font-weight: 900;
+        }
+        .cell:hover { background: #252525; border-color: #555; }
+        .cell.X { color: var(--blue); }
+        .cell.O { color: var(--red); }
+        .cell.next-off { opacity: 0.2; filter: grayscale(1); }
+
+        #status { font-weight: 800; margin-bottom: 20px; font-size: 1.5rem; height: 1.5em; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
     <div class="box" id="lobby-ui">
-        <h2 style="letter-spacing: 2px;">INFINITY TTT</h2>
+        <h2>INF TTT</h2>
         
         <div id="setup-area">
-            <p style="color: #888;">Create a profile to play:</p>
-            <input type="text" id="username-input" placeholder="Your Nickname">
+            <input type="text" id="username-input" placeholder="Choose Nickname">
             <button class="btn" onclick="initUser()">Create Profile</button>
         </div>
 
         <div id="social-area" style="display: none;">
-            <p>Hello, <b id="display-name" style="color: var(--blue);"></b>!</p>
-            <div style="border-top: 1px solid #333; margin: 15px 0;"></div>
-            <input type="text" id="search-friend" placeholder="Search Nickname...">
-            <button class="btn" onclick="addFriend()">Add Friend</button>
-            
-            <h4 style="margin: 20px 0 10px 0; text-align: left;">Friends List</h4>
+            <p style="color: #aaa; margin-bottom: 20px;">Playing as: <b id="display-name" style="color: var(--blue);"></b></p>
+            <input type="text" id="search-friend" placeholder="Friend's Name">
+            <button class="btn" style="padding: 15px; font-size: 1rem;" onclick="addFriend()">Add Friend</button>
             <ul id="friend-list-ui" class="friend-list"></ul>
         </div>
     </div>
 
     <div id="game-area">
-        <div id="status">Waiting...</div>
+        <div id="status">Wait...</div>
         <div class="board" id="board">
             <div class="cell" onclick="handleMove(0)"></div>
             <div class="cell" onclick="handleMove(1)"></div>
@@ -64,11 +99,11 @@
             <div class="cell" onclick="handleMove(7)"></div>
             <div class="cell" onclick="handleMove(8)"></div>
         </div>
-        <button class="btn" style="background: #444; color: white;" onclick="exitGame()">Leave Match</button>
+        <button class="btn" style="background: #222; color: white; width: 200px;" onclick="location.reload()">Quit Game</button>
     </div>
 
     <script>
-        // --- 1. FIREBASE CONFIGURATION ---
+        // --- YOUR FIREBASE CONFIG ---
         const firebaseConfig = {
             apiKey: "AIzaSyAt_qIzv2o23gdbNXIjPI_25vC9Ar-wuWo",
             authDomain: "tictactoe-ae351.firebaseapp.com",
@@ -76,46 +111,40 @@
             projectId: "tictactoe-ae351",
             storageBucket: "tictactoe-ae351.firebasestorage.app",
             messagingSenderId: "283214751508",
-            appId: "1:283214751508:web:282f440b28862af7838401",
-            measurementId: "G-T4ZW6WDQY3"
+            appId: "1:283214751508:web:282f440b28862af7838401"
         };
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        let myName = "", myID = "", currentGameID = "", mySymbol = "";
+        let myName, myID, currentGameID, mySymbol;
         let isMyTurn = false, board = Array(9).fill(""), moves = { X:[], O:[] };
 
-        // --- 2. SOCIAL & PROFILE LOGIC ---
+        // --- USER SYSTEM ---
         function initUser() {
             myName = document.getElementById('username-input').value.trim();
-            if (!myName) return alert("Please enter a name!");
-            myID = 'id_' + Math.floor(Math.random() * 1000000);
+            if (!myName) return alert("Enter a name!");
+            myID = 'u' + Math.floor(Math.random() * 999999);
             
-            // Save nickname to global directory so others can find you
-            db.ref('directory/' + myName).set(myID);
-            
-            document.getElementById('setup-area').style.display = 'none';
-            document.getElementById('social-area').style.display = 'block';
-            document.getElementById('display-name').innerText = myName;
-            
-            listenForInvites();
-            renderFriends();
+            db.ref('directory/' + myName).set(myID).then(() => {
+                document.getElementById('setup-area').style.display = 'none';
+                document.getElementById('social-area').style.display = 'block';
+                document.getElementById('display-name').innerText = myName;
+                listenForInvites();
+                renderFriends();
+            }).catch(() => alert("Error! Set Firebase Rules to public."));
         }
 
         function addFriend() {
             const target = document.getElementById('search-friend').value.trim();
-            if (target === myName) return alert("You can't add yourself!");
-            
-            db.ref('directory/' + target).once('value', snapshot => {
-                if(snapshot.exists()) {
+            if(!target) return;
+            db.ref('directory/' + target).once('value', s => {
+                if(s.exists()) {
                     let friends = JSON.parse(localStorage.getItem('ttt_friends') || '{}');
-                    friends[target] = snapshot.val();
+                    friends[target] = s.val();
                     localStorage.setItem('ttt_friends', JSON.stringify(friends));
-                    document.getElementById('search-friend').value = "";
                     renderFriends();
-                } else {
-                    alert("User '" + target + "' not found!");
-                }
+                    document.getElementById('search-friend').value = "";
+                } else alert("Player not found!");
             });
         }
 
@@ -125,47 +154,40 @@
             ui.innerHTML = "";
             for(let name in friends) {
                 ui.innerHTML += `<li class="friend-item">
-                    <span>${name}</span>
-                    <button class="btn" style="width:auto; margin:0; padding: 5px 15px;" onclick="invite('${friends[name]}')">Play</button>
+                    <span class="friend-name">${name}</span>
+                    <button class="btn" style="width:auto; margin:0; padding: 10px 20px; font-size: 0.9rem;" onclick="invite('${friends[name]}')">Challenge</button>
                 </li>`;
             }
         }
 
-        function invite(friendID) {
-            const gid = myID + "_" + friendID;
-            db.ref('invites/' + friendID).set({ from: myName, fromID: myID, gid: gid });
-            alert("Invitation sent! Waiting for acceptance...");
+        function invite(fid) {
+            const gid = myID + "_" + fid;
+            db.ref('invites/' + fid).set({ from: myName, fromID: myID, gid: gid });
             startGame(gid, "X");
         }
 
         function listenForInvites() {
-            db.ref('invites/' + myID).on('value', snapshot => {
-                const data = snapshot.val();
-                if(data) {
-                    if(confirm(data.from + " challenged you! Accept?")) {
+            db.ref('invites/' + myID).on('value', s => {
+                const d = s.val();
+                if(d) {
+                    if(confirm(d.from + " challenged you! Accept?")) {
                         db.ref('invites/' + myID).remove();
-                        startGame(data.gid, "O");
-                    } else {
-                        db.ref('invites/' + myID).remove();
+                        startGame(d.gid, "O");
                     }
                 }
             });
         }
 
-        // --- 3. INFINITY TIC-TAC-TOE GAME LOGIC ---
+        // --- GAME LOGIC ---
         function startGame(gid, symbol) {
             currentGameID = gid;
             mySymbol = symbol;
             isMyTurn = (symbol === "X");
-            board = Array(9).fill("");
-            moves = { X:[], O:[] };
-            
             document.getElementById('lobby-ui').style.display = 'none';
             document.getElementById('game-area').style.display = 'block';
             
-            // Listen for moves from the other player
-            db.ref('games/' + gid).on('value', snapshot => {
-                const data = snapshot.val();
+            db.ref('games/' + gid).on('value', s => {
+                const data = s.val();
                 if(data && data.lastMover !== myID) {
                     board = data.board;
                     moves = data.moves;
@@ -178,24 +200,15 @@
         }
 
         function handleMove(idx) {
-            if(!isMyTurn || board[idx] !== "" || !currentGameID) return;
-            
-            // Infinity Rule: Remove 4th move
+            if(!isMyTurn || board[idx] !== "") return;
             if(moves[mySymbol].length === 3) {
-                const oldest = moves[mySymbol].shift();
-                board[oldest] = "";
+                board[moves[mySymbol].shift()] = "";
             }
-            
             board[idx] = mySymbol;
             moves[mySymbol].push(idx);
             isMyTurn = false;
-            
             updateUI();
-            db.ref('games/' + currentGameID).set({ 
-                board: board, 
-                moves: moves, 
-                lastMover: myID 
-            });
+            db.ref('games/' + currentGameID).set({ board, moves, lastMover: myID });
             checkWinner();
         }
 
@@ -204,17 +217,12 @@
             board.forEach((val, i) => {
                 cells[i].innerText = val;
                 cells[i].className = 'cell ' + (val || '');
-                
-                // Highlight the piece that will disappear next
-                let nextToFade = isMyTurn ? mySymbol : (mySymbol === 'X' ? 'O' : 'X');
-                if (moves[nextToFade].length === 3 && moves[nextToFade][0] === i) {
-                    cells[i].classList.add('next-off');
-                }
+                let nextP = isMyTurn ? mySymbol : (mySymbol === 'X' ? 'O' : 'X');
+                if (moves[nextP].length === 3 && moves[nextP][0] === i) cells[i].classList.add('next-off');
             });
-            
-            const statusEl = document.getElementById('status');
-            statusEl.innerText = isMyTurn ? "Your Turn (" + mySymbol + ")" : "Opponent's Turn...";
-            statusEl.style.color = isMyTurn ? (mySymbol === 'X' ? 'var(--blue)' : 'var(--red)') : '#777';
+            const s = document.getElementById('status');
+            s.innerText = isMyTurn ? "Your Turn ("+mySymbol+")" : "Opponent Turn...";
+            s.style.color = isMyTurn ? "var(--blue)" : "#555";
         }
 
         function checkWinner() {
@@ -222,18 +230,11 @@
             for (let w of wins) {
                 if (board[w[0]] && board[w[0]] === board[w[1]] && board[w[0]] === board[w[2]]) {
                     setTimeout(() => {
-                        alert(board[w[0]] + " WINS THE MATCH!");
-                        exitGame();
+                        alert(board[w[0]] + " WINS!");
+                        location.reload();
                     }, 100);
-                    return true;
                 }
             }
-            return false;
-        }
-
-        function exitGame() {
-            if(currentGameID) db.ref('games/' + currentGameID).off();
-            location.reload();
         }
     </script>
 </body>
